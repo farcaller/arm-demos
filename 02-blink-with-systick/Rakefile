@@ -1,0 +1,116 @@
+require 'digest/sha1'
+require 'rake/loaders/makefile'
+
+# toolchain setup
+TOOLCHAIN = 'arm-none-eabi-'
+
+# lookup table for aggregated sources (src -> hashed obj)
+SOURCE_LOOKUP = {}
+
+# helper to get relevant obj files from src
+class Rake::FileList
+  def to_objs
+    FileList.new(to_a.map { |fn| SOURCE_LOOKUP[fn] })
+  end
+end
+
+# helper to do size report
+def report_size!(elf)
+  stats = `#{TOOLCHAIN}size #{elf}`.split("\n").last.split("\t").map {|s|s.strip}
+  align = stats[3].length
+  puts "Statistics for #{elf}"
+  puts "  .text: #{stats[0].rjust(align)} bytes"
+  puts "  .data: #{stats[1].rjust(align)} bytes"
+  puts "  .bss:  #{stats[2].rjust(align)} bytes"
+  puts "         #{'='*(align+6)}"
+  puts "  TOTAL: #{stats[3]} bytes (0x#{stats[4]})"
+end
+
+# define all available platforms
+PLATFORMS = %w[protoboard mbed]
+
+# for each platform define its cpu (effectively -- cmsis driver)
+PLATFORM_CPUS = {
+  'protoboard' => 'lpc1114',
+  'mbed' => 'lpc1768',
+}
+
+# define CFLAGS for all source files
+COMMON_CFLAGS = [
+  '-mthumb', '-mcpu=cortex-m0',
+  '-O2', '-ffunction-sections', '-fdata-sections',
+  '-Iplatform/common', '-Icpu/lpc1114/include']
+
+# platform-specific CFLAGS, add cpu include directory
+PLATFORM_CFLAGS = Hash[PLATFORMS.map { |p| [p, ["-Icpu/#{PLATFORM_CPUS[p]}/include"]] }]
+
+# common sources -- everything c-ish in app
+COMMON_SOURCES = FileList['app/*.c']
+
+# per-platform sources -- the platform itself, its cpu, common platform files
+PLATFORM_SOURCES = Hash[PLATFORMS.map do |p|
+  [p,
+    FileList["platform/#{p}/*.c"] +
+    FileList["cpu/#{PLATFORM_CPUS[p]}/src/*.c"] +
+    FileList["platform/common/*.c", "platform/common/*.s"]
+  ]
+end]
+
+# generate build rules for all source files (also re-builds ALL .d)
+def make_compile_rule(src, cflags)
+  sha = Digest::SHA1.hexdigest(src)
+  fn = File.basename(src, '.c')
+  dest = "build/#{sha}_#{fn}.o"
+  deps = "build/#{sha}_#{fn}.d"
+  SOURCE_LOOKUP[src] = dest
+
+  file dest => [src] do |t|
+    sh "#{TOOLCHAIN}gcc #{cflags.join(' ')} -c #{t.prerequisites.first} -o #{t.name}"
+  end
+
+  sh "#{TOOLCHAIN}gcc -MM -MT #{dest} -MF #{deps} #{cflags.join(' ')} #{src}", verbose: false
+  Rake::MakefileLoader.new.load(deps) if File.exists? deps
+end
+
+COMMON_SOURCES.each { |src| make_compile_rule(src, COMMON_CFLAGS) }
+PLATFORM_SOURCES.each do |platform, src|
+  cflags = [COMMON_CFLAGS | PLATFORM_CFLAGS[platform]].flatten
+  src.each { |s| make_compile_rule(s, cflags) }
+end
+
+# generate platform build rules
+PLATFORMS.each do |p|
+  file "build/#{p}.elf" => [
+    COMMON_SOURCES.to_objs,
+    PLATFORM_SOURCES[p].to_objs,
+  ].flatten do |t|
+    sh "#{TOOLCHAIN}ld -o #{t.name} -T platform/#{p}/layout.ld #{t.prerequisites.join(' ')}"
+  end
+
+  file "build/#{p}.lst" => ["build/#{p}.elf"] do |t|
+    sh "#{TOOLCHAIN}objdump -D #{t.prerequisites.first} > #{t.name}"
+  end
+
+  file "build/#{p}.bin" => ["build/#{p}.elf"] do |t|
+    sh "#{TOOLCHAIN}objcopy #{t.prerequisites.first} #{t.name} -O binary"
+  end
+
+  desc "Build app for platform #{p}"
+  task "build_#{p}" => ["build/#{p}.bin", "build/#{p}.lst"] do
+    report_size!("build/#{p}.elf")
+  end
+end
+
+desc "Build app for all platforms"
+task :build => PLATFORMS.map { |p| "build_#{p}" }
+
+# ensure there's build directory
+sh 'mkdir -p build' unless Dir.exists? 'build'
+
+# clean task
+desc "Clean build directory"
+task :clean do
+  FileList['build/*'].each { |f| FileUtils.rm_f(f) }
+end
+
+task :default => :build
