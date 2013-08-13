@@ -3,6 +3,8 @@
 
 void platform_setup_led();
 void platform_toggle_led(int on);
+void platform_init();
+
 void platform_clkout(int clock);
 
 void setup();

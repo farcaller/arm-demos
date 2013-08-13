@@ -2,6 +2,7 @@
 
 void main()
 {
+    platform_init();
     setup();
 
     while(1) {
