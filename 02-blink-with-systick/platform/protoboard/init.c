@@ -47,7 +47,7 @@ void platform_init()
         ;
 
     // switch main clock to be driven from PLL
-    LPC_SYSCON->MAINCLKSEL = 1;
+    LPC_SYSCON->MAINCLKSEL = 3;
 
     // wait for main clock source to be updated
     LPC_SYSCON->MAINCLKUEN = 1;
