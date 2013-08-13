@@ -56,6 +56,10 @@ PLATFORM_SOURCES = Hash[PLATFORMS.map do |p|
   ]
 end]
 
+# ensure there's build directory
+sh 'mkdir -p build' unless Dir.exists? 'build'
+
+
 # generate build rules for all source files (also re-builds ALL .d)
 def make_compile_rule(src, cflags)
   sha = Digest::SHA1.hexdigest(src)
@@ -103,9 +107,6 @@ end
 
 desc "Build app for all platforms"
 task :build => PLATFORMS.map { |p| "build_#{p}" }
-
-# ensure there's build directory
-sh 'mkdir -p build' unless Dir.exists? 'build'
 
 # clean task
 desc "Clean build directory"
