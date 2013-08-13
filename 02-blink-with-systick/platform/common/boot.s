@@ -1,5 +1,6 @@
 .cpu cortex-m0
 .thumb
+.section .isr_vector
 
 .word   _stack_base
 .word   main
