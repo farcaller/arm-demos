@@ -124,17 +124,17 @@ PLATFORMS.each do |p|
   end
 end
 
-desc "Build app for all platforms"
-task :build => PLATFORMS.map { |p| "build_#{p}" }
-
 # clean task
 desc "Clean build directory"
 task :clean do
   FileList['build/*'].each { |f| FileUtils.rm_f(f) }
 end
 
-# default -- build all
-task :default => :build
+task :default do
+  puts "Usage: rake build_PLATFORM"
+  puts "where platform is one of: #{PLATFORMS.join(', ')}"
+  exit 2
+end
 
 # platform-specific uploaders
 desc "Upload to protoboard"
