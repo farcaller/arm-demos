@@ -115,3 +115,11 @@ task :clean do
 end
 
 task :default => :build
+
+# platform-specific uploaders
+desc "Upload to protoboard"
+task :upload_protoboard => [:build_protoboard] do
+  tty = ENV['TTY'] || "/dev/tty.usbserial-AD025LFD"
+
+  sh "lpc21isp -debug3 -verify -bin build/protoboard.bin 115200 12000"
+end
