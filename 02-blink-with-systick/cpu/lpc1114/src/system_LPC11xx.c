@@ -131,7 +131,7 @@
 #define WDTOSCCTRL_Val        0x000000A0
 #define SYSPLLCLKSEL_Val      0x00000000
 #define SYSPLL_SETUP          1
-#define SYSPLLCTRL_Val        0x00000043
+#define SYSPLLCTRL_Val        0x00000023
 #define MAINCLKSEL_Val        0x00000003
 #define SYSAHBCLKDIV_Val      0x00000001
 #define AHBCLKCTRL_Val        0x0001005F
