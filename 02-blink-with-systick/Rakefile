@@ -42,13 +42,24 @@ COMMON_LDFLAGS = [
 
 # define CFLAGS for all source files
 COMMON_CFLAGS = [
-  '-mthumb', '-mcpu=cortex-m0',
+  '-mthumb',
   '-O2', #'-ffunction-sections', '-fdata-sections',
   '-Iplatform/common', '-Icpu/lpc1114/include'
 ]
 
 # platform-specific CFLAGS, add cpu include directory
-PLATFORM_CFLAGS = Hash[PLATFORMS.map { |p| [p, ["-Icpu/#{PLATFORM_CPUS[p]}/include"]] }]
+PLATFORM_CFLAGS = {
+  'protoboard' => [
+    '-Icpu/lpc1114/include',
+    '-mcpu=cortex-m0',
+    '-DPLATFORM=PROTOBOARD',
+  ],
+  'mbed' => [
+    '-Icpu/lpc1768/include',
+    '-mcpu=cortex-m3',
+    '-DPLATFORM=MBED',
+  ],
+}
 
 # common sources -- everything c-ish in app
 COMMON_SOURCES = FileList['app/*.c']
