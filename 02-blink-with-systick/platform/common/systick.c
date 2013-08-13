@@ -21,10 +21,10 @@ void platform_systick_wait_loop()
     }
 }
 
-void platform_systick_setup()
+void platform_systick_setup(unsigned int load)
 {
     SysTick->CTRL = 0x04;
-    SysTick->LOAD = 12000000;
+    SysTick->LOAD = load;
     SysTick->VAL = 0;
     SysTick->CTRL = 0x05;
 }
