@@ -144,3 +144,11 @@ task :upload_protoboard => [:build_protoboard] do
 
   sh "lpc21isp -debug#{debug} -verify -bin build/protoboard.bin #{tty} 115200 12000"
 end
+
+desc "Upload to mbed"
+task :upload_mbed => [:build_mbed] do
+  MOUNT = ENV['MOUNT'] || "/Volumes/MBED/"
+
+  FileList[MOUNT+'/*.bin'].each { |fn| FileUtils.rm_f(fn) }
+  FileUtils.cp('build/mbed.bin', MOUNT+'/mbed.bin')
+end
