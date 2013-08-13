@@ -35,6 +35,11 @@ PLATFORM_CPUS = {
   'mbed' => 'lpc1768',
 }
 
+# define linker flags
+COMMON_LDFLAGS = [
+  #"--gc-sections",
+]
+
 # define CFLAGS for all source files
 COMMON_CFLAGS = [
   '-mthumb', '-mcpu=cortex-m0',
@@ -87,8 +92,10 @@ PLATFORMS.each do |p|
   file "build/#{p}.elf" => [
     COMMON_SOURCES.to_objs,
     PLATFORM_SOURCES[p].to_objs,
+    "platform/#{p}/layout.ld"
   ].flatten do |t|
-    sh "#{TOOLCHAIN}ld -o #{t.name} -T platform/#{p}/layout.ld #{t.prerequisites.join(' ')}"
+    objs = t.prerequisites.delete_if { |e| !e.end_with? '.o' }
+    sh "#{TOOLCHAIN}ld #{COMMON_LDFLAGS.join(' ')} -o #{t.name} -T platform/#{p}/layout.ld #{objs.join(' ')}"
   end
 
   file "build/#{p}.lst" => ["build/#{p}.elf"] do |t|
