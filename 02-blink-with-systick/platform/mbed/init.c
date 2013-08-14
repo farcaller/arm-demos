@@ -2,8 +2,8 @@
 
 #define CLOCK_MODE_IRC           0 // 4MHz
 #define CLOCK_MODE_IRC_WITH_PLL  1 // 100 MHz
-#define CLOCK_MODE_MAIN          2 // 12 MHz
-#define CLOCK_MODE_MAIN_WITH_PLL 3 // 100 MHz
+#define CLOCK_MODE_MAIN          2 // 12 MHz with external 12MHz crystal
+#define CLOCK_MODE_MAIN_WITH_PLL 3 // 100 MHz with external 12MHz crystal
 
 #define CLOCK_MODE CLOCK_MODE_IRC
 
