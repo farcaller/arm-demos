@@ -24,7 +24,7 @@ void platform_systick_wait_loop()
 void platform_systick_setup(unsigned int load)
 {
     SysTick->CTRL = 0x04;
-    SysTick->LOAD = load;
+    SysTick->LOAD = load < 0xffffff ? load : 0xffffff;
     SysTick->VAL = 0;
     SysTick->CTRL = 0x05;
 }
