@@ -24,6 +24,9 @@ void platform_init()
 
 // set up PLL if it's used
 #if CLOCK_MODE == CLOCK_MODE_IRC_WITH_PLL || CLOCK_MODE == CLOCK_MODE_MAIN_WITH_PLL
+    // if we go for clock > 80 MHz, we need to set up flash access time
+    LPC_SC->FLASHCFG = (LPC_SC->FLASHCFG & 0xFFF) | 0x4000; // 4 cpu clocks
+
     // set up PLL dividers
     // input  clock must be in range of 32 kHZ  to 50 MHz
     // output clock must be in range of 275 MHz to 550 MHz
