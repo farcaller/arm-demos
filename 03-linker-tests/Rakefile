@@ -1,0 +1,74 @@
+# toolchain setup
+TOOLCHAIN = 'arm-none-eabi-'
+
+# ensure there's build directory
+sh 'mkdir -p build' unless Dir.exists? 'build'
+
+FileList["*.c", "*.cpp"].each do |fn|
+  dest = "build/#{File.basename(fn, File.extname(fn))}.o"
+
+  file dest => [fn] do |t|
+    cpp_cflags = File.extname(t.prerequisites.first) == ".cpp" ? "-fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables" : ""
+    do_gc = ENV['SPLIT_SECTIONS'] ? "-ffunction-sections -fdata-sections" : ""
+    sh "#{TOOLCHAIN}gcc #{cpp_cflags} #{do_gc} -mthumb -O2 -mcpu=cortex-m0 -c #{t.prerequisites.first} -o #{t.name}"
+  end
+end
+
+# helper task generator
+class ShowTask < Rake::Task
+  attr_accessor :obj_files, :sections
+
+  def self.build(name, sections=nil, &block)
+    define_task(name, :module) do |t, args|
+      modules = args[:module].split("|")
+      obj_files = modules.map { |m| "build/module_#{m}.o" }
+      t.obj_files = obj_files
+      t.sections = sections ? sections : [args[:section]]
+      obj_files.each { |o| Rake::Task[o].invoke }
+      block.call(t)
+    end
+  end
+
+  def sections
+    @sections.map { |sec| "-j #{sec}" }.join(" ")
+  end
+
+  def obj_files
+    @obj_files.join(" ")
+  end
+end
+
+namespace :show do
+  desc "Show sections"
+  ShowTask.build(:sections) { |t| sh "#{TOOLCHAIN}objdump #{t.obj_files} -h" }
+
+  namespace :symbols do
+    desc "Show whole symbol table"
+    ShowTask.build(:all) { |t| sh "#{TOOLCHAIN}objdump #{t.obj_files} -t" }
+
+    desc "Show symbol table for .text"
+    ShowTask.build(:text, ['.text']) { |t| sh "#{TOOLCHAIN}objdump #{t.obj_files} #{t.sections} -t" }
+
+    desc "Show symbol table for .data & .bss"
+    ShowTask.build(:data, ['.data', '.bss']) { |t| sh "#{TOOLCHAIN}objdump #{t.obj_files} #{t.sections} -t" }
+  end
+
+  desc "Show section contents"
+  ShowTask.build(:contents) { |t| sh "#{TOOLCHAIN}objdump #{t.obj_files} #{t.sections} -s" }
+
+  desc "Show ARM attributes"
+  ShowTask.build(:attrs) { |t| sh "#{TOOLCHAIN}readelf #{t.obj_files} -A" }
+
+  desc "Link and show map"
+  ShowTask.build(:map) do |t|
+    script = ENV['SCRIPT'] || "layout.ld"
+    do_gc = ENV['GC'] ? "--gc-sections" : ""
+    sh "#{TOOLCHAIN}ld #{do_gc} -T #{script} -M -o build/out.elf #{t.obj_files}"
+  end
+end
+
+# clean task
+desc "Clean build directory"
+task :clean do
+  FileList['build/*', 'build/.target'].each { |f| FileUtils.rm_f(f) }
+end
