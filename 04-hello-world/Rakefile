@@ -107,6 +107,7 @@ PLATFORMS.each do |p|
   ].flatten do |t|
     objs = t.prerequisites.delete_if { |e| !e.end_with? '.o' }
     sh "#{TOOLCHAIN}gcc " +
+    "#{COMMON_CFLAGS.join(' ')} " +
     "#{COMMON_LDFLAGS.join(' ')} " +
     "#{PLATFORM_CFLAGS[p].join(' ')} " +
     "-o #{t.name} " +
