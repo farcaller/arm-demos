@@ -1,7 +1,7 @@
 #define WEAK __attribute__ ((weak))
 #define ALIAS(f) #f)))
 
-__attribute__ ((weak)) void isr_default_handler();
+void isr_default_handler();
 
 void isr_pin_wakeup (void) __attribute__ ((weak, alias("isr_default_handler")));
 void isr_spi_1 (void) __attribute__ ((weak, alias("isr_default_handler")));
