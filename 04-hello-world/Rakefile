@@ -45,7 +45,7 @@ COMMON_LDFLAGS = [
 # define CFLAGS for all source files
 COMMON_CFLAGS = [
   '-mthumb',
-  '-O2', '-ffunction-sections', '-fdata-sections',
+  '-Os', '-ffunction-sections', '-fdata-sections',
   '-Iplatform/common', '-Icpu/lpc1114/include'
 ]
 
