@@ -1,0 +1,180 @@
+require 'pry'
+require 'digest/sha1'
+require 'rake/loaders/makefile'
+
+# toolchain setup
+TOOLCHAIN = 'arm-none-eabi-'
+
+# lookup table for aggregated sources (src -> hashed obj)
+SOURCE_LOOKUP = {}
+
+# helper to get relevant obj files from src
+class Rake::FileList
+  def to_objs
+    FileList.new(to_a.map { |fn| SOURCE_LOOKUP[fn] })
+  end
+end
+
+# helper to do size report
+def report_size!(elf)
+  stats = `#{TOOLCHAIN}size #{elf}`.split("\n").last.split("\t").map {|s|s.strip}
+  align = stats[3].length
+  puts "Statistics for #{elf}"
+  puts "  .text: #{stats[0].rjust(align)} bytes"
+  puts "  .data: #{stats[1].rjust(align)} bytes"
+  puts "  .bss:  #{stats[2].rjust(align)} bytes"
+  puts "         #{'='*(align+6)}"
+  puts "  TOTAL: #{stats[3]} bytes (0x#{stats[4]})"
+end
+
+# define all available platforms
+PLATFORMS = %w[protoboard mbed]
+
+# for each platform define its cpu (effectively -- cmsis driver)
+PLATFORM_CPUS = {
+  'protoboard' => 'lpc1114',
+  'mbed' => 'lpc1768',
+}
+
+# define linker flags
+COMMON_LDFLAGS = [
+  #"--gc-sections",
+]
+
+# define CFLAGS for all source files
+COMMON_CFLAGS = [
+  '-mthumb',
+  '-O2', #'-ffunction-sections', '-fdata-sections',
+  '-Iplatform/common', '-Icpu/lpc1114/include'
+]
+
+# platform-specific CFLAGS, add cpu include directory
+PLATFORM_CFLAGS = {
+  'protoboard' => [
+    '-Icpu/lpc1114/include',
+    '-mcpu=cortex-m0',
+    '-DPLATFORM=PROTOBOARD',
+  ],
+  'mbed' => [
+    '-Icpu/lpc1768/include',
+    '-mcpu=cortex-m3',
+    '-DPLATFORM=MBED',
+  ],
+}
+
+# common sources -- everything c-ish in app
+COMMON_SOURCES = FileList['app/*.c']
+
+# per-platform sources -- the platform itself, its cpu, common platform files
+PLATFORM_SOURCES = Hash[PLATFORMS.map do |p|
+  [p,
+    FileList["platform/#{p}/*.c"] +
+    FileList["cpu/#{PLATFORM_CPUS[p]}/src/*.c"] +
+    FileList["platform/common/*.c", "platform/common/*.s"]
+  ]
+end]
+
+# ensure there's build directory
+sh 'mkdir -p build' unless Dir.exists? 'build'
+
+# helper task that knows about cflags
+class CompileTask < Rake::FileTask
+  attr_accessor :cflags
+end
+
+# generate build rules for all source files (also re-builds ALL .d)
+def make_compile_rule(src)
+  sha = Digest::SHA1.hexdigest(src)
+  fn = File.basename(src, '.c')
+  dest = "build/#{sha}_#{fn}.o"
+  SOURCE_LOOKUP[src] = dest
+
+  CompileTask.define_task(dest => [src]) do |t|
+    sh "#{TOOLCHAIN}gcc #{t.cflags.join(' ')} -c #{t.prerequisites.first} -o #{t.name}"
+  end
+end
+
+COMMON_SOURCES.each { |src| make_compile_rule(src) }
+PLATFORM_SOURCES.each { |_, src| src.each { |s| make_compile_rule(s) } }
+
+# generate platform build rules
+PLATFORMS.each do |p|
+  file "build/#{p}.elf" => [
+    COMMON_SOURCES.to_objs,
+    PLATFORM_SOURCES[p].to_objs,
+    "platform/#{p}/layout.ld"
+  ].flatten do |t|
+    objs = t.prerequisites.delete_if { |e| !e.end_with? '.o' }
+    sh "#{TOOLCHAIN}ld #{COMMON_LDFLAGS.join(' ')} -o #{t.name} -T platform/#{p}/layout.ld #{objs.join(' ')}"
+  end
+
+  file "build/#{p}.lst" => ["build/#{p}.elf"] do |t|
+    sh "#{TOOLCHAIN}objdump -D #{t.prerequisites.first} > #{t.name}"
+  end
+
+  file "build/#{p}.bin" => ["build/#{p}.elf"] do |t|
+    sh "#{TOOLCHAIN}objcopy #{t.prerequisites.first} #{t.name} -O binary"
+  end
+
+  task "refine_deps_for_#{p}" do
+    obj_names = [COMMON_SOURCES.to_objs | PLATFORM_SOURCES[p].to_objs].flatten
+    obj_tasks = obj_names.map { |fn| Rake::Task[fn] }
+
+    cflags = [COMMON_CFLAGS | PLATFORM_CFLAGS[p]].flatten
+
+    obj_tasks.each do |t|
+      t.cflags = cflags
+      src = t.prerequisites.first
+      dest = t.name
+      deps = dest.gsub(/\.o$/, '.d')
+      sh "#{TOOLCHAIN}gcc -MM -MT #{dest} -MF #{deps} #{cflags.join(' ')} #{src}", verbose: false
+      Rake::MakefileLoader.new.load(deps) if File.exists? deps
+    end
+  end
+
+  task "mark_and_clean_#{p}" do |t|
+    my_target = t.name[15..-1]
+    if File.exists?('build/.target')
+      built_for = open('build/.target').read
+      if built_for != my_target
+        puts "Builing #{my_target}, but build/ configured for #{built_for}: will clean"
+        Rake::Task[:clean].invoke
+      end
+    end
+    open('build/.target', 'w') { |f| f.write(my_target) }
+  end
+
+  desc "Build app for platform #{p}"
+  task "build_#{p}" => ["mark_and_clean_#{p}", "refine_deps_for_#{p}", "build/#{p}.bin", "build/#{p}.lst"] do
+    report_size!("build/#{p}.elf")
+  end
+end
+
+# clean task
+desc "Clean build directory"
+task :clean do
+  FileList['build/*', 'build/.target'].each { |f| FileUtils.rm_f(f) }
+end
+
+task :default do
+  puts "Usage: rake build_PLATFORM"
+  puts "where platform is one of: #{PLATFORMS.join(', ')}"
+  exit 2
+end
+
+# platform-specific uploaders
+desc "Upload to protoboard"
+task :upload_protoboard => [:build_protoboard] do
+  tty = ENV['TTY'] || "/dev/tty.usbserial-AD025LFD"
+  debug = ENV['debug'] || "0"
+
+  sh "lpc21isp -debug#{debug} -verify -bin build/protoboard.bin #{tty} 115200 12000"
+end
+
+desc "Upload to mbed"
+task :upload_mbed => [:build_mbed] do
+  MOUNT = ENV['MOUNT'] || "/Volumes/MBED/"
+
+  FileList[MOUNT+'/*.bin'].each { |fn| FileUtils.rm_f(fn) }
+  FileUtils.cp('build/mbed.bin', MOUNT+'/mbed.bin')
+end
