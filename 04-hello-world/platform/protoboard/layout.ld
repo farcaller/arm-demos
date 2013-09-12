@@ -1,5 +1,5 @@
 _stack_base = 0x10002000;
-_boot_checksum = 0 - (_stack_base + main + 1 + (hang + 1) * 5);
+_boot_checksum = 0 - (_stack_base + main + 1 + isr_nmi + 1 + isr_hardfault + 1);
 
 ENTRY(main)
 
@@ -14,6 +14,7 @@ SECTIONS
     .text :
     {
         KEEP(*(.isr_vector))
+        KEEP(*(.isr_vector_nvic))
         *(.text*)
     } > rom
 }
