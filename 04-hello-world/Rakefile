@@ -38,13 +38,14 @@ PLATFORM_CPUS = {
 
 # define linker flags
 COMMON_LDFLAGS = [
-  #"--gc-sections",
+  "-ffreestanding",
+  "-nostartfiles",
 ]
 
 # define CFLAGS for all source files
 COMMON_CFLAGS = [
   '-mthumb',
-  '-O2', #'-ffunction-sections', '-fdata-sections',
+  '-O2', '-ffunction-sections', '-fdata-sections',
   '-Iplatform/common', '-Icpu/lpc1114/include'
 ]
 
@@ -105,7 +106,14 @@ PLATFORMS.each do |p|
     "platform/#{p}/layout.ld"
   ].flatten do |t|
     objs = t.prerequisites.delete_if { |e| !e.end_with? '.o' }
-    sh "#{TOOLCHAIN}ld #{COMMON_LDFLAGS.join(' ')} -o #{t.name} -T platform/#{p}/layout.ld #{objs.join(' ')}"
+    sh "#{TOOLCHAIN}gcc " +
+    "#{COMMON_LDFLAGS.join(' ')} " +
+    "#{PLATFORM_CFLAGS[p].join(' ')} " +
+    "-o #{t.name} " +
+    "-Wl,--gc-sections " +
+    "-Wl,-T -Wl,platform/#{p}/layout.ld " +
+    "-Wl,-Map -Wl,build/#{p}.map " +
+    "#{objs.join(' ')}"
   end
 
   file "build/#{p}.lst" => ["build/#{p}.elf"] do |t|
