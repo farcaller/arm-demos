@@ -6,6 +6,9 @@
 
 #define CLOCK_MODE CLOCK_MODE_IRC
 
+extern uint32_t systick_clock_count;
+extern uint32_t systick_wrap_count;
+
 void platform_init()
 {
 // set up system oscillator and toggle PLL to point at it
@@ -55,6 +58,12 @@ void platform_init()
     LPC_SYSCON->MAINCLKUEN = 1;
     while (!(LPC_SYSCON->MAINCLKUEN & 1))
         ;
+
+    systick_clock_count = 12000000;
+    systick_wrap_count = 40;
+#else
+    systick_clock_count = 12000000;
+    systick_wrap_count = 10;
 #endif
 
     // PS: CLOCK_MODE_IRC is the default boot mode, do nothing

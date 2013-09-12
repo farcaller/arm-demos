@@ -2,7 +2,9 @@
 #include <stdint.h>
 
 static volatile uint32_t systick_10ms_ticks = 0;
-extern uint32_t systick_10ms_clock;
+static volatile uint32_t systick_wrap = 0;
+uint32_t systick_clock_count;
+uint32_t systick_wrap_count;
 
 void platform_delay(uint32_t msec)
 {
@@ -16,7 +18,7 @@ void platform_delay(uint32_t msec)
 void platform_timer_init()
 {
     SysTick->CTRL = 0b110;
-    SysTick->LOAD = systick_10ms_clock;
+    SysTick->LOAD = systick_clock_count;
     SysTick->VAL = 0;
     SysTick->CTRL = 0b111;
 }
@@ -24,5 +26,9 @@ void platform_timer_init()
 // override isr_systick from isr.c
 void isr_systick(void)
 {
-    ++systick_10ms_ticks;
+    ++systick_wrap;
+    if(systick_wrap == systick_wrap_count) {
+        systick_wrap = 0;
+        ++systick_10ms_ticks;
+    }
 }
