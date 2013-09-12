@@ -105,7 +105,7 @@ PLATFORMS.each do |p|
     "platform/#{p}/layout.ld"
   ].flatten do |t|
     objs = t.prerequisites.delete_if { |e| !e.end_with? '.o' }
-    sh "#{TOOLCHAIN}ld #{COMMON_LDFLAGS.join(' ')} -o #{t.name} -T platform/#{p}/layout.ld #{objs.join(' ')}"
+    sh "#{TOOLCHAIN}ld #{COMMON_LDFLAGS.join(' ')} -o #{t.name} -T platform/#{p}/layout.ld -Map build/#{p}.map #{objs.join(' ')}"
   end
 
   file "build/#{p}.lst" => ["build/#{p}.elf"] do |t|
