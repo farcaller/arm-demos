@@ -4,7 +4,8 @@
 
 void platform_led_setup()
 {
-    LPC_GPIO1->DIR |= LED_PIN;
+	LPC_GPIO1->DIR |= LED_PIN;
+	platform_led_toggle(0);
 }
 
 void platform_led_toggle(int on)
