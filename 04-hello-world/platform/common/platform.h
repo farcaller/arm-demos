@@ -14,7 +14,7 @@ void platform_clkout(int clock);
 void platform_delay(uint_fast32_t msec);
 
 void platfrom_uart_setup(uint_fast32_t baud);
-void platfrom_uart_writef(const char *fmt, ...);
+int platform_uart_printf(const char *format, ...);
 
 void setup();
 void loop();
