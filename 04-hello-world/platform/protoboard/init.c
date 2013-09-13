@@ -6,7 +6,7 @@
 
 #define CLOCK_MODE CLOCK_MODE_IRC
 
-extern uint32_t systick_clock_count;
+uint32_t platform_clock;
 
 void platform_init()
 {
@@ -58,9 +58,9 @@ void platform_init()
     while (!(LPC_SYSCON->MAINCLKUEN & 1))
         ;
 
-    systick_clock_count = 480000;
+    platform_clock = 48000000;
 #else
-    systick_clock_count = 120000;
+    platform_clock = 12000000;
 #endif
 
     // PS: CLOCK_MODE_IRC is the default boot mode, do nothing
