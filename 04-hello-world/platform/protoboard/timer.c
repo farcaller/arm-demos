@@ -15,7 +15,6 @@ void platform_delay(uint32_t msec)
 
 void platform_timer_init()
 {
-    systick_10ms_ticks = 0; // BSS is not zeroed out [yet]
     SysTick->CTRL = 0b110;
     SysTick->LOAD = platform_clock / 100; // 10ms
     SysTick->VAL = 0;
