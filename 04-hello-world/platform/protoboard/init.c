@@ -57,11 +57,16 @@ void platform_init()
     LPC_SYSCON->MAINCLKUEN = 1;
     while (!(LPC_SYSCON->MAINCLKUEN & 1))
         ;
+#endif
 
+    // PS: CLOCK_MODE_IRC is the default boot mode, do nothing
+}
+
+void platform_init_post()
+{
+#if CLOCK_MODE == CLOCK_MODE_IRC_WITH_PLL || CLOCK_MODE == CLOCK_MODE_SYS_WITH_PLL
     platform_clock = 48000000;
 #else
     platform_clock = 12000000;
 #endif
-
-    // PS: CLOCK_MODE_IRC is the default boot mode, do nothing
 }

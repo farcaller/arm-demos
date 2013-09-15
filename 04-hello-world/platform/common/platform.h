@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 void platform_init();
+void platform_init_post();
 void platform_init_data();
 void platform_timer_init();
 
@@ -19,5 +20,7 @@ int platform_uart_printf(const char *format, ...);
 
 void setup();
 void loop();
+
+extern uint32_t platform_clock;
 
 #endif
