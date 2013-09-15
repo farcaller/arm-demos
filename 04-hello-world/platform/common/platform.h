@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 void platform_init();
+void platform_init_data();
 void platform_timer_init();
 
 void platform_led_setup();

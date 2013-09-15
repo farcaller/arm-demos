@@ -3,6 +3,7 @@
 void main()
 {
     platform_init();
+    platform_init_data();
     platform_timer_init();
     setup();
 
