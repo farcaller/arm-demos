@@ -9,11 +9,17 @@ extern uint32_t _ebss;
 
 const char * const habr = "habr";
 
-int static_int = 0xab;
-int this_one_is_zero;
+uint8_t this_one_is_zero;
+uint16_t static_int = 0xab;
+uint8_t  static_int2 = 0xab;
+uint32_t static_int3 = 0xab;
+uint8_t  static_int4 = 0xab;
+
 
 void setup()
 {
+	static_int2 = static_int3 + static_int4; // just keep them used
+
     platform_led_setup();
     platform_uart_setup(9600);
 

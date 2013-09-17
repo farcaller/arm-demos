@@ -31,15 +31,13 @@ SECTIONS
 
     .data : ALIGN(4)
     {
-        FILL(0xff)
         _data = .;
 
-        *(vtable)
-        *(.data*)
+        *(SORT_BY_ALIGNMENT(.data*))
         . = ALIGN(4);
 
         _edata = .;
-    } > ram AT>rom
+    } > ram AT>rom = 0xff
 
     .bss : ALIGN(4)
     {
@@ -51,4 +49,13 @@ SECTIONS
 
         _ebss = .;
     } > ram
+
+    /DISCARD/ :
+    {
+        *(.glue_7*)  /* arm-thumb interworking */
+        *(.v4_bx)  /* ARMv4 interworking fixup for missing BX */
+        *(.vfp11_veneer)  /* VFP11 bugfixes s.a. http://sourceware.org/ml/binutils/2006-12/msg00196.html */
+        *(.iplt .igot.plt)  /* STT_GNU_IFUNC symbols */
+        *(.rel.*)  /* denamic relocations */
+    }
 }
