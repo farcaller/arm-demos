@@ -7,6 +7,8 @@
 
 #define CLOCK_MODE CLOCK_MODE_IRC
 
+uint32_t platform_clock;
+
 void platform_init()
 {
     // set up main oscillator if required
@@ -74,5 +76,20 @@ void platform_init()
     // wait until PLL is connected
     while (!(LPC_SC->PLL0STAT & (1<<25)))
         ;
+#endif
+}
+
+void platform_init_post()
+{
+#if CLOCK_MODE == CLOCK_MODE_IRC
+    platform_clock = 4000000;
+#elif CLOCK_MODE == CLOCK_MODE_IRC_WITH_PLL
+    platform_clock = 100000000;
+#elif CLOCK_MODE == CLOCK_MODE_MAIN
+    platform_clock = 12000000;
+#elif CLOCK_MODE == CLOCK_MODE_MAIN_WITH_PLL
+    platform_clock = 100000000;
+#else
+    #error unknown clock mode, cannot set platform_clock
 #endif
 }
