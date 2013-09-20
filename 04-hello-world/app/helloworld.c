@@ -8,6 +8,11 @@ extern uint32_t _ebss;
 #define PRINT_ADDR(a) platform_uart_printf("  " #a " = 0x%08x\n", &a)
 
 const char * const habr = "habr";
+#if defined(PLATFORM_PROTOBOARD)
+const char * const cpuname = "LPC1114";
+#elif defined(PLATFORM_MBED)
+const char * const cpuname = "LPC1768";
+#endif
 
 uint8_t this_one_is_zero;
 uint16_t static_int = 0xab;
@@ -25,9 +30,8 @@ void setup()
 
     platform_delay(1000);
 
+    platform_uart_printf("Hello %s! this is %s running at %dMHz\n", habr, cpuname, platform_clock / 1000000);
     platform_led_toggle(1);
-
-    platform_uart_printf("Hello %s! this is LPC1114 running at %dMHz\n", habr, platform_clock / 1000000);
     platform_uart_printf("Some layout info:\n");
 
     PRINT_ADDR(_data);
