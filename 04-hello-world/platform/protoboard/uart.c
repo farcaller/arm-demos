@@ -55,10 +55,10 @@ void platform_uart_setup(uint32_t baud_rate)
     }
 
     // Enable UART IRQ
-    NVIC_EnableIRQ(UART_IRQn);
+    // NVIC_EnableIRQ(UART_IRQn);
 
     // Enable UART IRQs on received data
-    LPC_UART->IER = 0b101;
+    // LPC_UART->IER = 0b101;
 }
 
 void platform_uart_putc(const char c)
