@@ -5,7 +5,7 @@
 #define CLOCK_MODE_MAIN          2 // 12 MHz with external 12MHz crystal
 #define CLOCK_MODE_MAIN_WITH_PLL 3 // 100 MHz with external 12MHz crystal
 
-#define CLOCK_MODE CLOCK_MODE_IRC
+#define CLOCK_MODE CLOCK_MODE_IRC_WITH_PLL
 
 uint32_t platform_clock;
 
