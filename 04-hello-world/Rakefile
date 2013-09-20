@@ -55,12 +55,12 @@ PLATFORM_CFLAGS = {
   'protoboard' => [
     '-Icpu/lpc1114/include',
     '-mcpu=cortex-m0',
-    '-DPLATFORM=PROTOBOARD',
+    '-DPLATFORM_PROTOBOARD',
   ],
   'mbed' => [
     '-Icpu/lpc1768/include',
     '-mcpu=cortex-m3',
-    '-DPLATFORM=MBED',
+    '-DPLATFORM_MBED',
   ],
 }
 
